@@ -1,0 +1,18 @@
+_format_version: "2.1"
+_transform: true
+
+plugins:
+  - name: callrailhmacverify
+    service: example-service
+    config:
+      secret: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+services:
+  - name: example-service
+    url: https://www.google.com
+    routes:
+      - name: jspath
+        paths:
+        - /
+    plugins:
+      - name: callrailhmacverify    
