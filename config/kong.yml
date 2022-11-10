@@ -5,11 +5,11 @@ plugins:
   - name: callrailhmacverify
     service: example-service
     config:
-      secret: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      secret: "072e77e426f92738a72fe23c4d1953b4"
 
 services:
   - name: example-service
-    url: https://www.google.com
+    url: https://mockbin.org
     routes:
       - name: jspath
         paths:

@@ -1,11 +1,14 @@
-'use strict';
+"use strict";
+
+const crypto = require('crypto');
 
 // This is a kong plugin that will validate HMAC signautures 
 
-class CallrailHmacVerify {
+class KongPlugin {
 
   constructor(config) {
     this.config = config
+    this.secret = config.secret
   }
 
   b64ToArrBuff(b64) {
@@ -17,46 +20,43 @@ class CallrailHmacVerify {
 
     return byteArray;
   }
- 
+
   async access(kong) {
-    kong.request.getHeader(signature)
-      .then((signatureStr) => {
-      const signature = this.b64ToArrBuff(signatureStr)
-      const content = kong.request.text()
-      const request_payload = content
-      let encoder = new TextEncoder()
-      const key = crypto.subtle.importKey(
-          'raw',
-          encoder.encode(this.config.secret),
-          { name: 'HMAC', hash: 'SHA1' },
-          false,
-          ['verify']
-      )
-      const verified = crypto.subtle.verify(
-          "HMAC",
-          key,
-          signature,
-          encoder.encode(request_payload)
-      )
-      if (!verified) {
-          return new Response('Verification failed', {
-              status: 401,
-              headers: {
-                  'Cache-Control': 'no-cache'
-              }
-          })
-      }
-      return new Responce('Successful', {
-        status: 204,
-      })
-    })
+    const signatureStr = await kong.request.getHeader("signature")
+    if (!signatureStr) {
+      kong.log.debug("Signature Header Not Present")
+      kong.response.exit(401)
+    }
+    const request_payload = kong.request.getRawBody() 
+    const secretKey = this.b64ToArrBuff(this.config.secret)
+    let encoder = new TextEncoder()
+    kong.log.debug("Secret Key: " + encoder.encode(secretKey))
+    const key = crypto.subtle.importKey(
+        'raw',
+        encoder.encode(secretKey),
+        { name: 'HMAC', hash: 'SHA1' },
+        false,
+        ['verify']
+    )
+    const verified = crypto.subtle.verify(
+        "HMAC",
+        key,
+        signature,
+        encoder.encode(request_payload)
+    )
+    if (!verified) {
+        kong.log.debug("Signature: " + signatureStr + " not verifed")
+        kong.response.exit(401,'Verification failed')
+    }
+    await Promise.all([  kong.response.exit(204, 'Successful'), ])
   }
 }
+
 module.exports = {
-  Plugin: CallrailHmacVerify,
+  Plugin: KongPlugin,
   Schema: [
     { secret: { type: "string" } },
   ],
   Version: '0.1.0',
-  Priority: 1000,
+  Priority: 0,
 }
