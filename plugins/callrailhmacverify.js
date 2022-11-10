@@ -22,6 +22,8 @@ class KongPlugin {
   }
 
   async access(kong) {
+    kong.log.debug("Config: " + JSON.stringify(this.config));
+    kong.log.debug("Secret: " + this.secret);
     const signatureStr = await kong.request.getHeader("signature")
     if (!signatureStr) {
       kong.log.debug("Signature Header Not Present")
