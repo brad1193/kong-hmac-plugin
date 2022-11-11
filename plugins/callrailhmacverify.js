@@ -1,6 +1,6 @@
-"use strict";
+"use strict"
 
-const crypto = require('crypto');
+const crypto =  require('crypto');
 
 // This is a kong plugin that will validate HMAC signautures 
 
@@ -8,7 +8,6 @@ class KongPlugin {
 
   constructor(config) {
     this.config = config
-    this.secret = config.secret
   }
 
   b64ToArrBuff(b64) {
@@ -23,7 +22,7 @@ class KongPlugin {
 
   async access(kong) {
     kong.log.debug("Config: " + JSON.stringify(this.config));
-    kong.log.debug("Secret: " + this.secret);
+    kong.log.debug("Secret: " + this.config.secret);
     const signatureStr = await kong.request.getHeader("signature")
     if (!signatureStr) {
       kong.log.debug("Signature Header Not Present")
@@ -32,14 +31,16 @@ class KongPlugin {
     const request_payload = kong.request.getRawBody() 
     const secretKey = this.b64ToArrBuff(this.config.secret)
     let encoder = new TextEncoder()
-    kong.log.debug("Secret Key: " + encoder.encode(secretKey))
-    const key = crypto.subtle.importKey(
+    const secret = encoder.encode(secretKey)
+    if (typeof(secret) !== 'undefined') {
+      const key = crypto.subtle.importKey(
         'raw',
-        encoder.encode(secretKey),
-        { name: 'HMAC', hash: 'SHA1' },
+        secret,
+        { name: 'HMAC', hash: 'SHA-1' },
         false,
         ['verify']
-    )
+      )
+    }
     const verified = crypto.subtle.verify(
         "HMAC",
         key,
